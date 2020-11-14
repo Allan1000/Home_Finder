@@ -23,26 +23,85 @@ def get_api_key(api_key_id = "Realtor"):
     Table of key type and key value stored locally for privacy.
 
     :param api_key_id: key value in dataframe
-    :return: API Key
+    :return: api_key
 
     """
 
     # load api keys file
-    df_api_keys = pd.read_csv()
+    df_api_keys = pd.read_csv("api_key_table.csv")
+
+    # try to get api key
+    try:
+        api_key = df_api_keys.loc[df_api_keys['API']==api_key_id,'Key'][0]
+        return api_key
+    except IndexError:
+        # get api key id list
+        api_key_id_list = df_api_keys['Id'].unique().tolist()
+        # print error message
+        print('Cannot map key. Api key id must be one of the following options {0}'.format(api_key_id_list))
+
 
 ## Real Estate API
-def real_estate_api():
-    import requests
+def get_listings(city,state_code,price_min, price_max, beds_min, baths_min, prop_type="single_family",limit=200):
+    """
+
+    :param city: str type
+    :param state_code: str type (abbreviation ex: "NY")
+    :param price_min: int
+    :param price_max: int
+    :param beds_min: int
+    :param baths_min: int
+    :param prop_type: str type Options - [single_family,multi_family,condo, mobile,land, farm,other]
+    :param limit:  int
+    :return: dataframe of real estate listings
+
+    """
+
+    api_key_id = "realtor"
+    api_key = get_api_key(api_key_id)
+
 
     url = "https://realtor.p.rapidapi.com/properties/v2/list-for-sale"
 
-    querystring = {"city": "New York City", "limit": "200", "offset": "0", "state_code": "NY", "sort": "relevance"}
+    querystring = {
+        "city": city,
+        "state_code": state_code,
+        "price_min": price_min,
+        "price_max": price_max,
+        "beds_min": beds_min,
+        "baths_min": baths_min,
+        "prop_type": prop_type,
+        "limit": limit,
+        "offset": "0",
+        "sort": "relevance"
+    }
 
     headers = {
-        'x-rapidapi-key': "",
+        'x-rapidapi-key': api_key,
         'x-rapidapi-host': "realtor.p.rapidapi.com"
     }
 
     response = requests.request("GET", url, headers=headers, params=querystring)
 
-    print(response.text)
+    response_json = response.json()
+
+    # empty dataframe
+    dataframe_list = []
+
+    # iterate through each for sale listing
+    for l in response_json['properties']:
+        # convert each listing to dataframe
+        _temp_df = pd.DataFrame.from_dict(l, orient='index').T
+
+        # append to dataframe list for all listings
+        dataframe_list.append(_temp_df)
+
+    # concatenate all dataframes, for missing col values enter null value
+    return pd.concat(dataframe_list, axis=0, ignore_index=True, sort=False)
+
+
+
+
+test = get_listings("Fort Lee","NJ",200000,1000000,2,1)
+test.to_csv("test.csv",index=False)
+
