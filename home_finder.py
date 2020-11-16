@@ -42,7 +42,7 @@ def get_api_key(api_key_id = "Realtor"):
 
 
 ## Real Estate API
-def get_listings(city,state_code,price_min, price_max, beds_min, baths_min, prop_type="single_family",limit=200):
+def get_listings(api_key,city,state_code,price_min, price_max, beds_min, baths_min, prop_type="single_family",limit=200):
     """
 
     :param city: str type
@@ -56,9 +56,6 @@ def get_listings(city,state_code,price_min, price_max, beds_min, baths_min, prop
     :return: dataframe of real estate listings
 
     """
-
-    api_key_id = "realtor"
-    api_key = get_api_key(api_key_id)
 
 
     url = "https://realtor.p.rapidapi.com/properties/v2/list-for-sale"
@@ -100,8 +97,26 @@ def get_listings(city,state_code,price_min, price_max, beds_min, baths_min, prop
     return pd.concat(dataframe_list, axis=0, ignore_index=True, sort=False)
 
 
+def get_commute_score(r_api_key,w_api_key,lon,lat,address):
+    url = "https://walk-score.p.rapidapi.com/score"
+
+    querystring = {
+        "lon": "undefined",
+        "lat": "undefined",
+        "address": "undefined",
+        "wsapikey": "undefined"
+    }
+
+    headers = {
+        'x-rapidapi-key': r_api_key,
+        'x-rapidapi-host': "walk-score.p.rapidapi.com"
+    }
+
+    response = requests.request("GET", url, headers=headers, params=querystring)
+
+    print(response.text)
 
 
-test = get_listings("Fort Lee","NJ",200000,1000000,2,1)
+test = get_listings(get_api_key("realtor"),"Fort Lee","NJ",200000,1000000,2,1)
 test.to_csv("test.csv",index=False)
 
